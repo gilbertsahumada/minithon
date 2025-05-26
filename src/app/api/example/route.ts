@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
           description:
             "Almacena tu mensaje con un timestamp personalizado calculado para almacenamiento óptimo",
           chains: { source: "fuji" },
-          path: `/api/mi-app`,
+          path: `/api/example`,
           params: [
             {
               name: "mensaje",
