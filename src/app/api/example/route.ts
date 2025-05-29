@@ -8,6 +8,7 @@ import {
 } from "@sherrylinks/sdk";
 import { serialize } from "wagmi";
 import { abi } from "@/blockchain/abi";
+import {Transaction } from "viem";
 
 const CONTRACT_ADDRESS = "0x26480A86d47096Cf19F1be6129546aD715Ca68D9";
 
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     // Create smart contract transaction
     const tx = {
-      address: CONTRACT_ADDRESS,
+      to: CONTRACT_ADDRESS,
       abi: abi,
       functionName: "storeMessage",
       args: [message, optimizedTimestamp],
