@@ -7,6 +7,9 @@ import {
   ExecutionResponse,
 } from "@sherrylinks/sdk";
 import { serialize } from "wagmi";
+import { abi } from "@/blockchain/abi";
+
+const CONTRACT_ADDRESS = "0x26480A86d47096Cf19F1be6129546aD715Ca68D9";
 
 export async function GET(req: NextRequest) {
   try {
@@ -63,62 +66,91 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    try {
-      const { searchParams } = new URL(req.url);
-      const mensaje = searchParams.get('mensaje');
-  
-      if (!mensaje) {
-        return NextResponse.json(
-          { error: 'El parámetro mensaje es requerido' },
-          {
-            status: 400,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          },
-        );
-      }
-  
-      const tx = {
-        to: '0x5ee75a1B1648C023e885E58bD3735Ae273f2cc52',
-        value: BigInt(1000000),
-        chainId: avalancheFuji.id,
-      };
-  
-      // Serializar la transacción para la blockchain
-      const serialized = serialize(tx);
-  
-      // Crear el objeto de respuesta que Sherry espera
-      const resp: ExecutionResponse = {
-        serializedTransaction: serialized,
-        chainId: avalancheFuji.name, // Usar el nombre de la chain, no el ID
-      };
-  
-      // Retornar la respuesta con headers CORS
-      return NextResponse.json(resp, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      });
-    } catch (error) {
-      console.error('Error en petición POST:', error);
-      return NextResponse.json({ error: 'Error Interno del Servidor' }, { status: 500 });
-    }
-  }
+  try {
+    const { searchParams } = new URL(req.url);
+    const message = searchParams.get("mensaje");
 
-  export async function OPTIONS(request: NextRequest) {
-    return new NextResponse(null, {
-      status: 204, // Sin Contenido
+    if (!message) {
+      return NextResponse.json(
+        { error: "Message parameter is required" },
+        {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        }
+      );
+    }
+
+    // Calculate optimized timestamp using custom algorithm
+    const optimizedTimestamp = calculateOptimizedTimestamp(message);
+
+    // Create smart contract transaction
+    const tx = {
+      address: CONTRACT_ADDRESS,
+      abi: abi,
+      functionName: "storeMessage",
+      args: [message, optimizedTimestamp],
+    };
+
+    // Serialize transaction
+    const serialized = serialize(tx);
+
+    // Create response
+    const resp: ExecutionResponse = {
+      serializedTransaction: serialized,
+      chainId: avalancheFuji.name,
+    };
+
+    return NextResponse.json(resp, {
+      status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers':
-          'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version',
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
+  } catch (error) {
+    console.error("Error in POST request:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
+}
+
+// Custom algorithm to calculate optimized timestamp based on message content
+function calculateOptimizedTimestamp(message: string): number {
+  // Get the current timestamp as a starting point
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+
+  // Custom algorithm: Add character codes to create a unique offset
+  // This is your unique business logic - you can make this as complex as needed
+  let offset = 0;
+
+  for (let i = 0; i < message.length; i++) {
+    // Sum character codes and use position as a multiplier
+    offset += message.charCodeAt(i) * (i + 1);
+  }
+
+  // Ensure offset is reasonable (1 hour max)
+  const maxOffset = 3600;
+  offset = offset % maxOffset;
+
+  // Calculate final optimized timestamp
+  return currentTimestamp + offset;
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204, // Sin Contenido
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version",
+    },
+  });
+}
