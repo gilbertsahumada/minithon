@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
       abi: abi,
       functionName: "storeMessage",
       args: [message, optimizedTimestamp],
+      type: 'legacy',
     };
 
     // Serialize transaction
