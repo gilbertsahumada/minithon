@@ -8,7 +8,7 @@ import {
 } from "@sherrylinks/sdk";
 import { serialize } from "wagmi";
 import { abi } from "@/blockchain/abi";
-import {Transaction } from "viem";
+import {encodeFunctionData, TransactionSerializable } from "viem";
 
 const CONTRACT_ADDRESS = "0x26480A86d47096Cf19F1be6129546aD715Ca68D9";
 
@@ -88,12 +88,17 @@ export async function POST(req: NextRequest) {
     // Calculate optimized timestamp using custom algorithm
     const optimizedTimestamp = calculateOptimizedTimestamp(message);
 
-    // Create smart contract transaction
-    const tx = {
-      to: CONTRACT_ADDRESS,
+    const data = encodeFunctionData({ 
       abi: abi,
       functionName: "storeMessage",
-      args: [message, optimizedTimestamp],
+      args: [message, BigInt(optimizedTimestamp)],
+    });
+
+    // Create smart contract transaction
+    const tx: TransactionSerializable = {
+      to: CONTRACT_ADDRESS,
+      data: data,
+      chainId: avalancheFuji.id,
       type: 'legacy',
     };
 
